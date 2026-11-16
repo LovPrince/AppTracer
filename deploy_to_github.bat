@@ -12,7 +12,7 @@ if "%REPO_NAME%"=="" set REPO_NAME=GhostTrack
 echo.
 echo Adding and committing latest fixes...
 git add .
-git commit -m "Fix: Add Gradle wrapper generator, Android icons, and CI workflow" 2>nul
+git commit -m "Fix: Add Gradle wrapper JAR + official gradlew, new app icon, and GitHub Actions CI workflow" 2>nul
 git branch -M main
 
 echo.
