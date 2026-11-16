@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GhostTrack Forensics - Uninstalled App Detector | Made by Princeyy</title>
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #131b2e;
+      --bg-card-stroke: #1f293d;
+      --bg-ghost-card: #1e1423;
+      --stroke-ghost: #4a1d35;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --secondary: #06b6d4;
+      --ghost-red: #ef4444;
+      --ghost-red-bg: rgba(239, 68, 68, 0.15);
+      --ghost-red-light: #fca5a5;
+      --green-active: #10b981;
+      --green-bg: rgba(16, 185, 129, 0.15);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --princeyy-purple: #a855f7;
+      --princeyy-gold: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Bar */
+    header {
+      background: rgba(11, 15, 25, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--bg-card-stroke);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      font-size: 28px;
+      background: linear-gradient(135deg, #4f46e5, #a855f7);
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+    }
+
+    .logo-text h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #ffffff, #93c5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo-text p {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .developer-pill {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(79, 70, 229, 0.25));
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      padding: 6px 14px;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #e9d5ff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
+    }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      width: 100%;
+      flex: 1;
+    }
+
+    /* Explanation Banner */
+    .info-card {
+      background: linear-gradient(135deg, #131b2e, #1a2238);
+      border: 1px solid var(--bg-card-stroke);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .info-icon {
+      font-size: 28px;
+      background: rgba(99, 102, 241, 0.15);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .info-content h2 {
+      font-size: 16px;
+      margin-bottom: 6px;
+      color: #ffffff;
+    }
+
+    .info-content p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Stats Overview */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-stroke);
+      border-radius: 16px;
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card.ghost {
+      background: var(--bg-ghost-card);
+      border-color: var(--stroke-ghost);
+    }
+
+    .stat-card .label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stat-card.ghost .label {
+      color: var(--ghost-red-light);
+    }
+
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: 800;
+      margin: 8px 0 4px;
+      color: #ffffff;
+    }
+
+    .stat-card .sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Controls Bar */
+    .controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-stroke);
+      border-radius: 14px;
+      padding: 12px 16px;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+    }
+
+    .search-input {
+      background: var(--bg-main);
+      border: 1px solid var(--bg-card-stroke);
+      color: #fff;
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      min-width: 260px;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-action {
+      background: var(--primary);
+      border: none;
+      color: #fff;
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: 0.2s;
+    }
+
+    .btn-action:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Apps List */
+    .apps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .app-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-stroke);
+      border-radius: 16px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.15s, border-color 0.15s;
+      cursor: pointer;
+    }
+
+    .app-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary);
+    }
+
+    .app-card.uninstalled {
+      background: var(--bg-ghost-card);
+      border-color: var(--stroke-ghost);
+    }
+
+    .app-card.uninstalled:hover {
+      border-color: var(--ghost-red);
+    }
+
+    .app-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .app-identity {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .app-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: #818cf8;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .app-card.uninstalled .app-avatar {
+      color: var(--ghost-red);
+      background: #2a1420;
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .app-names h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .app-names p {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 20px;
+      letter-spacing: 0.3px;
+    }
+
+    .badge.uninstalled {
+      background: var(--ghost-red-bg);
+      color: var(--ghost-red-light);
+      border: 1px solid var(--ghost-red);
+    }
+
+    .badge.installed {
+      background: var(--green-bg);
+      color: #6ee7b7;
+      border: 1px solid var(--green-active);
+    }
+
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      padding: 10px 14px;
+    }
+
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .metric-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .metric-val.fg {
+      color: #38bdf8;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 16px;
+    }
+
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-stroke);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 540px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-box h2 {
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .modal-box .pkg-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: monospace;
+      margin-bottom: 20px;
+    }
+
+    .modal-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .modal-row {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--bg-card-stroke);
+      padding-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .modal-row .label {
+      color: var(--text-muted);
+    }
+
+    .modal-row .val {
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .adb-section {
+      margin-top: 32px;
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-stroke);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .adb-section h3 {
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .adb-textarea {
+      width: 100%;
+      height: 120px;
+      background: var(--bg-main);
+      border: 1px solid var(--bg-card-stroke);
+      border-radius: 10px;
+      padding: 10px;
+      color: #cbd5e1;
+      font-family: monospace;
+      font-size: 12px;
+      resize: vertical;
+      margin: 10px 0;
+    }
+
+    footer {
+      border-top: 1px solid var(--bg-card-stroke);
+      padding: 16px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="logo-area">
+      <div class="logo-icon">👻</div>
+      <div class="logo-text">
+        <h1>GhostTrack Forensics</h1>
+        <p>Uninstalled App Detector</p>
+      </div>
+    </div>
+    <div class="developer-pill">
+      <span>👑</span>
+      <span>Made by Princeyy</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Explanatory Technical Banner -->
+    <div class="info-card">
+      <div class="info-icon">⚡</div>
+      <div class="info-content">
+        <h2>How GhostTrack Detects Apps Before It Was Installed</h2>
+        <p>
+          Android maintains a persistent, low-level service named <code>usagestats</code>. Even when an application is uninstalled from the phone, Android preserves historical screen time, launch events (<code>ACTIVITY_RESUMED</code>), and timestamps in the system database. GhostTrack queries this OS-level log and cross-checks every record against currently installed packages to unmask ghost apps.
+        </p>
+      </div>
+    </div>
+
+    <!-- Stats Dashboard -->
+    <div class="stats-grid">
+      <div class="stat-card ghost">
+        <div class="label">👻 Uninstalled (Ghost) Apps</div>
+        <div class="value" id="statGhostCount">0</div>
+        <div class="sub" id="statGhostTime">0m total foreground screen time</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">📱 Currently Installed Apps</div>
+        <div class="value" id="statInstalledCount">0</div>
+        <div class="sub" id="statInstalledTime">0m total foreground screen time</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">🔍 Total Audit Records</div>
+        <div class="value" id="statTotalCount">0</div>
+        <div class="sub">Across past 30 days</div>
+      </div>
+    </div>
+
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+      <div class="filter-tabs">
+        <button class="tab-btn active" onclick="setFilter('uninstalled', this)">👻 Uninstalled Only</button>
+        <button class="tab-btn" onclick="setFilter('installed', this)">📱 Installed</button>
+        <button class="tab-btn" onclick="setFilter('all', this)">All Apps</button>
+      </div>
+
+      <input type="text" id="searchInput" class="search-input" placeholder="Search app or package ID…" oninput="renderApps()">
+
+      <button class="btn-action" onclick="exportReport()">
+        <span>📤 Export Audit Report</span>
+      </button>
+    </div>
+
+    <!-- Apps List -->
+    <div class="apps-list" id="appsContainer"></div>
+
+    <!-- Live ADB Log Importer Tool for real phones -->
+    <div class="adb-section">
+      <h3>🔌 Live Phone Audit via ADB (Optional)</h3>
+      <p style="font-size: 12px; color: var(--text-muted);">
+        If your Android phone is connected to your computer via USB debugging, run <code>adb shell dumpsys usagestats</code> in your terminal and paste the output below to instantly analyze your real device:
+      </p>
+      <textarea id="adbInput" class="adb-textarea" placeholder="Paste 'adb shell dumpsys usagestats' output here…"></textarea>
+      <button class="btn-action" onclick="parseAdbLogs()">Parse Live Phone Logs</button>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-backdrop" id="modalBackdrop" onclick="closeModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 id="modalTitle">App Name</h2>
+        <span class="badge" id="modalBadge">UNINSTALLED</span>
+      </div>
+      <div class="pkg-sub" id="modalPackage">com.example.package</div>
+
+      <div class="modal-grid">
+        <div class="modal-row">
+          <span class="label">⏱️ Total Foreground Screen Time</span>
+          <span class="val" id="modalFgTime" style="color: #38bdf8;">0s</span>
+        </div>
+        <div class="modal-row">
+          <span class="label">🔄 Total App Launches / Sessions</span>
+          <span class="val" id="modalSessions">0</span>
+        </div>
+        <div class="modal-row">
+          <span class="label">⏳ Average Session Duration</span>
+          <span class="val" id="modalAvgSession">0s</span>
+        </div>
+        <div class="modal-row">
+          <span class="label">📅 Last Used Timestamp</span>
+          <span class="val" id="modalLastUsed">N/A</span>
+        </div>
+        <div class="modal-row">
+          <span class="label">🚀 First Recorded Activity</span>
+          <span class="val" id="modalFirstUsed">N/A</span>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-action" style="background:#1e293b; flex:1;" onclick="openPlayStore()">Google Play Store</button>
+        <button class="btn-action" style="flex:1;" onclick="copyModalReport()">Copy Report</button>
+      </div>
+
+      <div style="text-align:center; margin-top: 16px; font-size:11px; font-weight:700; color:var(--princeyy-purple);">
+        👑 GhostTrack Forensics • Made by Princeyy
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    GhostTrack Forensics &copy; 2026 • Crafted with passion by <strong>Princeyy</strong>
+  </footer>
+
+  <script>
+    // Authentic simulated usage dataset covering uninstalled (ghost) apps & installed apps
+    const SAMPLE_APPS = [
+      {
+        appName: "TikTok",
+        packageName: "com.zhiliaoapp.musically",
+        isInstalled: false,
+        fgTimeMs: 14520000, // 4h 02m
+        sessions: 52,
+        firstUsed: "2026-10-14 11:22:00",
+        lastUsed: "2026-11-13 22:45:10"
+      },
+      {
+        appName: "Clash of Clans",
+        packageName: "com.supercell.clashofclans",
+        isInstalled: false,
+        fgTimeMs: 8740000, // 2h 25m
+        sessions: 31,
+        firstUsed: "2026-10-20 09:14:00",
+        lastUsed: "2026-11-12 18:20:05"
+      },
+      {
+        appName: "Tinder",
+        packageName: "com.tinder",
+        isInstalled: false,
+        fgTimeMs: 5120000, // 1h 25m
+        sessions: 19,
+        firstUsed: "2026-10-28 20:00:00",
+        lastUsed: "2026-11-10 23:15:42"
+      },
+      {
+        appName: "Subway Surfers",
+        packageName: "com.kiloo.subwaysurf",
+        isInstalled: false,
+        fgTimeMs: 3200000, // 53m
+        sessions: 14,
+        firstUsed: "2026-11-01 16:30:00",
+        lastUsed: "2026-11-08 14:10:00"
+      },
+      {
+        appName: "WhatsApp Messenger",
+        packageName: "com.whatsapp",
+        isInstalled: true,
+        fgTimeMs: 38400000, // 10h 40m
+        sessions: 184,
+        firstUsed: "2026-09-01 08:00:00",
+        lastUsed: "2026-11-16 07:45:00"
+      },
+      {
+        appName: "Instagram",
+        packageName: "com.instagram.android",
+        isInstalled: true,
+        fgTimeMs: 25100000, // 6h 58m
+        sessions: 96,
+        firstUsed: "2026-09-01 12:00:00",
+        lastUsed: "2026-11-16 01:20:15"
+      },
+      {
+        appName: "YouTube",
+        packageName: "com.google.android.youtube",
+        isInstalled: true,
+        fgTimeMs: 42000000, // 11h 40m
+        sessions: 64,
+        firstUsed: "2026-09-01 10:00:00",
+        lastUsed: "2026-11-15 21:10:00"
+      },
+      {
+        appName: "Spotify",
+        packageName: "com.spotify.music",
+        isInstalled: true,
+        fgTimeMs: 18900000, // 5h 15m
+        sessions: 42,
+        firstUsed: "2026-09-10 14:00:00",
+        lastUsed: "2026-11-15 17:30:00"
+      }
+    ];
+
+    let currentApps = [...SAMPLE_APPS];
+    let currentFilter = 'uninstalled';
+    let selectedApp = null;
+
+    function formatDuration(ms) {
+      if (ms <= 0) return "0s";
+      const totalSec = Math.floor(ms / 1000);
+      const hours = Math.floor(totalSec / 3600);
+      const mins = Math.floor((totalSec % 3600) / 60);
+      const secs = totalSec % 60;
+      if (hours > 0) return `${hours}h ${mins}m ${secs}s`;
+      if (mins > 0) return `${mins}m ${secs}s`;
+      return `${secs}s`;
+    }
+
+    function updateStats() {
+      const ghosts = currentApps.filter(a => !a.isInstalled);
+      const installed = currentApps.filter(a => a.isInstalled);
+
+      const ghostFg = ghosts.reduce((acc, a) => acc + a.fgTimeMs, 0);
+      const installedFg = installed.reduce((acc, a) => acc + a.fgTimeMs, 0);
+
+      document.getElementById('statGhostCount').innerText = ghosts.length;
+      document.getElementById('statGhostTime').innerText = `${formatDuration(ghostFg)} total screen time`;
+
+      document.getElementById('statInstalledCount').innerText = installed.length;
+      document.getElementById('statInstalledTime').innerText = `${formatDuration(installedFg)} total screen time`;
+
+      document.getElementById('statTotalCount').innerText = currentApps.length;
+    }
+
+    function setFilter(filter, btn) {
+      currentFilter = filter;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderApps();
+    }
+
+    function renderApps() {
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const container = document.getElementById('appsContainer');
+      container.innerHTML = '';
+
+      const filtered = currentApps.filter(app => {
+        const matchesFilter = (currentFilter === 'all') ||
+          (currentFilter === 'uninstalled' && !app.isInstalled) ||
+          (currentFilter === 'installed' && app.isInstalled);
+        
+        const matchesQuery = query === '' ||
+          app.appName.toLowerCase().includes(query) ||
+          app.packageName.toLowerCase().includes(query);
+
+        return matchesFilter && matchesQuery;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center; padding: 48px; color: var(--text-muted);">
+            <div style="font-size: 40px; margin-bottom: 8px;">👻</div>
+            <p>No apps match the selected filter.</p>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(app => {
+        const card = document.createElement('div');
+        card.className = `app-card ${!app.isInstalled ? 'uninstalled' : ''}`;
+        card.onclick = () => showModal(app);
+
+        const initial = app.appName.charAt(0).toUpperCase();
+
+        card.innerHTML = `
+          <div class="app-card-header">
+            <div class="app-identity">
+              <div class="app-avatar">${initial}</div>
+              <div class="app-names">
+                <h3>${app.appName}</h3>
+                <p>${app.packageName}</p>
+              </div>
+            </div>
+            <span class="badge ${app.isInstalled ? 'installed' : 'uninstalled'}">
+              ${app.isInstalled ? '🟢 INSTALLED' : '👻 UNINSTALLED'}
+            </span>
+          </div>
+
+          <div class="metrics-row">
+            <div class="metric-item">
+              <span class="metric-label">⏱️ Foreground Time</span>
+              <span class="metric-val fg">${formatDuration(app.fgTimeMs)}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">🔄 Sessions</span>
+              <span class="metric-val">${app.sessions} launches</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">📅 Last Used</span>
+              <span class="metric-val">${app.lastUsed}</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">🚀 First Activity</span>
+              <span class="metric-val">${app.firstUsed}</span>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function showModal(app) {
+      selectedApp = app;
+      document.getElementById('modalTitle').innerText = app.appName;
+      document.getElementById('modalPackage').innerText = app.packageName;
+      
+      const badge = document.getElementById('modalBadge');
+      badge.className = `badge ${app.isInstalled ? 'installed' : 'uninstalled'}`;
+      badge.innerText = app.isInstalled ? 'INSTALLED APP' : '👻 UNINSTALLED (GHOST)';
+
+      document.getElementById('modalFgTime').innerText = formatDuration(app.fgTimeMs);
+      document.getElementById('modalSessions').innerText = `${app.sessions} launches`;
+      const avgMs = app.sessions > 0 ? Math.floor(app.fgTimeMs / app.sessions) : 0;
+      document.getElementById('modalAvgSession').innerText = formatDuration(avgMs);
+      document.getElementById('modalLastUsed').innerText = app.lastUsed;
+      document.getElementById('modalFirstUsed').innerText = app.firstUsed;
+
+      document.getElementById('modalBackdrop').style.display = 'flex';
+    }
+
+    function closeModal(e) {
+      document.getElementById('modalBackdrop').style.display = 'none';
+    }
+
+    function openPlayStore() {
+      if (selectedApp) {
+        window.open(`https://play.google.com/store/apps/details?id=${selectedApp.packageName}`, '_blank');
+      }
+    }
+
+    function copyModalReport() {
+      if (!selectedApp) return;
+      const text = `
+═══ GhostTrack Forensics Report ═══
+App Name: ${selectedApp.appName}
+Package: ${selectedApp.packageName}
+Status: ${selectedApp.isInstalled ? 'INSTALLED' : 'UNINSTALLED (GHOST)'}
+Foreground Time: ${formatDuration(selectedApp.fgTimeMs)}
+Sessions: ${selectedApp.sessions}
+Last Used: ${selectedApp.lastUsed}
+First Recorded: ${selectedApp.firstUsed}
+Forensics by GhostTrack • Made by Princeyy
+      `.trim();
+
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Report copied to clipboard!");
+      });
+    }
+
+    function exportReport() {
+      const ghosts = currentApps.filter(a => !a.isInstalled);
+      let report = `═══════════════════════════════════════════\n`;
+      report += `      GHOSTTRACK UNINSTALLED APP AUDIT     \n`;
+      report += `           Crafted by Princeyy             \n`;
+      report += `═══════════════════════════════════════════\n\n`;
+      report += `Total Uninstalled Apps Detected: ${ghosts.length}\n`;
+      report += `Total Monitored Apps: ${currentApps.length}\n\n`;
+      report += `-------------------------------------------\n`;
+      report += `UNINSTALLED (GHOST) APPLICATIONS:\n`;
+      report += `-------------------------------------------\n`;
+
+      ghosts.forEach((a, i) => {
+        report += `${i + 1}. ${a.appName} (${a.packageName})\n`;
+        report += `   • Foreground Screen Time: ${formatDuration(a.fgTimeMs)}\n`;
+        report += `   • Total Sessions: ${a.sessions}\n`;
+        report += `   • Last Used: ${a.lastUsed}\n`;
+        report += `   • First Seen: ${a.firstUsed}\n\n`;
+      });
+
+      report += `═══════════════════════════════════════════\n`;
+      report += `Report generated by GhostTrack • Made by Princeyy\n`;
+
+      const blob = new Blob([report], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ghosttrack_audit_report_${Date.now()}.txt`;
+      a.click();
+    }
+
+    function parseAdbLogs() {
+      const raw = document.getElementById('adbInput').value;
+      if (!raw.trim()) {
+        alert("Please paste text from 'adb shell dumpsys usagestats' first.");
+        return;
+      }
+
+      // Simple regex extraction for package stats
+      const packageRegex = /package=([a-zA-Z0-9_.]+).*?totalTimeInForeground=([0-9]+)/g;
+      let match;
+      let count = 0;
+
+      while ((match = packageRegex.exec(raw)) !== null) {
+        const pkg = match[1];
+        const fgMs = parseInt(match[2], 10);
+        if (fgMs > 0 && !currentApps.some(a => a.packageName === pkg)) {
+          currentApps.unshift({
+            appName: pkg.split('.').pop(),
+            packageName: pkg,
+            isInstalled: false, // Default to uninstalled check
+            fgTimeMs: fgMs,
+            sessions: Math.max(1, Math.floor(fgMs / 60000)),
+            firstUsed: "Imported via ADB",
+            lastUsed: "Imported via ADB"
+          });
+          count++;
+        }
+      }
+
+      updateStats();
+      renderApps();
+      alert(`Imported ${count} packages from ADB log dump!`);
+    }
+
+    // Initialize
+    updateStats();
+    renderApps();
+  </script>
+</body>
+</html>

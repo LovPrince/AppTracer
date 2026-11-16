@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GhostTrack</string>
+    <string name="app_subtitle">Uninstalled App Forensics</string>
+    <string name="developer_tag">Made by Princeyy</string>
+
+    <string name="grant_permission_title">Usage Access Required</string>
+    <string name="grant_permission_desc">To detect uninstalled apps and read historical screen time, Android requires Usage Access permission. Tap below to enable it.</string>
+    <string name="btn_grant_permission">Grant Usage Access</string>
+
+    <string name="filter_uninstalled">👻 Uninstalled Only (%1$d)</string>
+    <string name="filter_installed">📱 Installed (%1$d)</string>
+    <string name="filter_all">All Apps (%1$d)</string>
+
+    <string name="time_24h">24 Hours</string>
+    <string name="time_7d">7 Days</string>
+    <string name="time_30d">30 Days</string>
+    <string name="time_1y">1 Year</string>
+
+    <string name="label_fg_time">Foreground Time</string>
+    <string name="label_last_used">Last Used</string>
+    <string name="label_first_used">First Seen</string>
+    <string name="label_sessions">Total Sessions</string>
+    <string name="badge_uninstalled">UNINSTALLED APP</string>
+    <string name="badge_installed">INSTALLED</string>
+
+    <string name="search_hint">Search package or app name…</string>
+    <string name="empty_results">No apps match the selected filter</string>
+    <string name="loading_stats">Scanning Android usage database…</string>
+</resources>
