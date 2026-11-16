@@ -22,10 +22,11 @@ jobs:
         distribution: 'temurin'
         cache: 'gradle'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
+    - name: Accept Android SDK Licenses
+      run: |
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-    - name: Generate Wrapper and Build APK
+    - name: Build Debug APK
       run: |
         cd android-app
         gradle wrapper --gradle-version 8.5
@@ -37,4 +38,4 @@ jobs:
       with:
         name: GhostTrack-by-Princeyy-Debug-APK
         path: android-app/app/build/outputs/apk/debug/*.apk
-        if-no-files-found: warn
+        if-no-files-found: error

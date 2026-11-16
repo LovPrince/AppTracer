@@ -105,7 +105,7 @@ class UsageAnalyzer(private val context: Context) {
             val pkg = stat.packageName ?: continue
             val item = accumulators.getOrPut(pkg) { PackageAccumulator(pkg) }
             item.totalTimeMs += stat.totalTimeInForeground
-            if (stat.firstTimeStamp in 1..<item.firstTimeStamp) {
+            if (stat.firstTimeStamp > 0 && stat.firstTimeStamp < item.firstTimeStamp) {
                 item.firstTimeStamp = stat.firstTimeStamp
             }
             if (stat.lastTimeUsed > item.lastTimeUsed) {
@@ -124,7 +124,7 @@ class UsageAnalyzer(private val context: Context) {
                 val pkg = event.packageName ?: continue
                 val item = accumulators.getOrPut(pkg) { PackageAccumulator(pkg) }
 
-                if (event.timeStamp in 1..<item.firstTimeStamp) {
+                if (event.timeStamp > 0 && event.timeStamp < item.firstTimeStamp) {
                     item.firstTimeStamp = event.timeStamp
                 }
                 if (event.timeStamp > item.lastTimeUsed) {
