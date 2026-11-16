@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Princeyy's Key Generator - GhostTrack Admin</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #131b2e;
+      --card-border: #1f293d;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent: #a855f7;
+      --gold: #f59e0b;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .container {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 580px;
+      padding: 32px 28px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .header-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(99, 102, 241, 0.2));
+      border: 1px solid var(--accent);
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #e9d5ff;
+      margin-bottom: 10px;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(90deg, #ffffff, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input, select {
+      width: 100%;
+      background: #0b0f19;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-generate {
+      width: 100%;
+      background: linear-gradient(135deg, #4f46e5, #a855f7);
+      border: none;
+      color: #fff;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(168, 85, 247, 0.35);
+      transition: transform 0.15s;
+      margin-top: 8px;
+    }
+
+    .btn-generate:hover {
+      transform: translateY(-2px);
+    }
+
+    /* Output Card */
+    .result-box {
+      margin-top: 24px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid #312e81;
+      border-radius: 14px;
+      padding: 18px;
+      display: none;
+    }
+
+    .key-display {
+      background: #0b0f19;
+      border: 1px dashed var(--accent);
+      padding: 12px;
+      border-radius: 10px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #38bdf8;
+      word-break: break-all;
+      margin: 10px 0;
+    }
+
+    .btn-copy {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      width: 100%;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-copy:hover {
+      background: #334155;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <div class="header-badge">👑 ADMIN PORTAL</div>
+      <h1>GhostTrack Key Generator</h1>
+      <p>Approve time &amp; use limits for users on Discord</p>
+    </div>
+
+    <!-- HWID Input -->
+    <div class="form-group">
+      <label>User Device HWID (Copied from their phone)</label>
+      <input type="text" id="hwidInput" placeholder="PRINCEYY-XXXX-XXXX-XXXX" autocomplete="off">
+    </div>
+
+    <!-- Time Limit -->
+    <div class="form-group">
+      <label>Access Time Duration (Auto-locks after)</label>
+      <select id="timeSelect">
+        <option value="1">1 Hour (Trial)</option>
+        <option value="24">24 Hours (1 Day)</option>
+        <option value="72">3 Days</option>
+        <option value="168" selected>7 Days (1 Week)</option>
+        <option value="720">30 Days (1 Month)</option>
+        <option value="-1">Lifetime (No time expiration)</option>
+      </select>
+    </div>
+
+    <!-- Scan Limit -->
+    <div class="form-group">
+      <label>Usage / Scan Limit (Auto-locks after)</label>
+      <select id="useSelect">
+        <option value="5">5 Scans</option>
+        <option value="10">10 Scans</option>
+        <option value="25">25 Scans</option>
+        <option value="50">50 Scans</option>
+        <option value="100">100 Scans</option>
+        <option value="-1" selected>Unlimited Scans</option>
+      </select>
+    </div>
+
+    <button class="btn-generate" onclick="generateKey()">👑 Generate License Key</button>
+
+    <!-- Key Output Display -->
+    <div class="result-box" id="resultBox">
+      <div style="font-size: 12px; font-weight: 700; color: #a855f7;">✨ GENERATED LICENSE KEY:</div>
+      <div class="key-display" id="keyDisplay">GHOST-...</div>
+      <button class="btn-copy" onclick="copyDiscordMessage()">📋 Copy Message for Discord</button>
+    </div>
+  </div>
+
+  <script>
+    const MASTER_SECRET = "PRINCEYY_GHOSTTRACK_SECRET_KEY_9928174625";
+
+    // Simple fast HMAC-SHA256 in browser
+    async function calculateHmac(message) {
+      const enc = new TextEncoder();
+      const keyData = enc.encode(MASTER_SECRET);
+      const key = await crypto.subtle.importKey(
+        "raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+      );
+      const signature = await crypto.subtle.sign("HMAC", key, enc.encode(message));
+      const hashArray = Array.from(new Uint8Array(signature));
+      const hex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return hex.substring(0, 16);
+    }
+
+    async function generateKey() {
+      const hwid = document.getElementById('hwidInput').value.trim().toUpperCase();
+      if (!hwid) {
+        alert("Please paste the user's Device HWID first!");
+        return;
+      }
+
+      const hours = parseFloat(document.getElementById('timeSelect').value);
+      const maxUses = parseInt(document.getElementById('useSelect').value, 10);
+      const nowMs = Date.now();
+      const expiryMs = hours === -1 ? -1 : nowMs + Math.floor(hours * 3600 * 1000);
+
+      const rawPayload = `${hwid}|${expiryMs}|${maxUses}`;
+      const sig = await calculateHmac(rawPayload);
+      const full = `${rawPayload}|${sig}`;
+
+      // Base64 URL safe
+      const b64 = btoa(full).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const key = `GHOST-${b64}`;
+
+      document.getElementById('keyDisplay').innerText = key;
+      document.getElementById('resultBox').style.display = 'block';
+    }
+
+    function copyDiscordMessage() {
+      const key = document.getElementById('keyDisplay').innerText;
+      const timeText = document.getElementById('timeSelect').selectedOptions[0].text;
+      const useText = document.getElementById('useSelect').selectedOptions[0].text;
+
+      const message = 
+`Hey! Your GhostTrack access has been approved by Princeyy 👑
+• Time Limit: ${timeText}
+• Scan Limit: ${useText}
+• License Key: \`${key}\`
+
+Paste this key into GhostTrack to unlock the app! Once your limit expires, the app will auto-lock.`;
+
+      navigator.clipboard.writeText(message).then(() => {
+        alert("Copied full Discord approval message to clipboard!");
+      });
+    }
+  </script>
+</body>
+</html>

@@ -10,8 +10,8 @@ import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
-import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -23,6 +23,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.tabs.TabLayout
 import com.princeyy.ghosttracker.databinding.ActivityMainBinding
 import com.princeyy.ghosttracker.engine.UsageAnalyzer
+import com.princeyy.ghosttracker.license.DiscordNotifier
+import com.princeyy.ghosttracker.license.LicenseManager
 import com.princeyy.ghosttracker.model.AppUsageInfo
 import com.princeyy.ghosttracker.ui.AppAdapter
 import com.princeyy.ghosttracker.util.FormatUtils
@@ -30,7 +32,8 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
 /**
- * Main Forensic Dashboard Activity.
+ * Main Forensic Dashboard Activity with HWID & Discord License Protection.
+ * Auto-locks once approved time or scan limits expire.
  *
  * Developed and Designed by Princeyy
  */
@@ -43,7 +46,6 @@ class MainActivity : AppCompatActivity() {
     private var currentFilterMode = AppAdapter.FilterMode.UNINSTALLED_ONLY
     private var currentQuery = ""
     private var currentTimeWindowDays = 7
-
     private var currentDataset = listOf<AppUsageInfo>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,11 +60,111 @@ class MainActivity : AppCompatActivity() {
         setupTimeChips()
         setupSearch()
         setupActions()
+        setupLicenseGate()
     }
 
     override fun onResume() {
         super.onResume()
-        checkPermissionAndScan()
+        checkLicenseAndProceed()
+    }
+
+    private fun checkLicenseAndProceed() {
+        val isLicensed = LicenseManager.isAccessAllowed(this)
+        if (!isLicensed) {
+            showLicenseLockScreen()
+        } else {
+            hideLicenseLockScreen()
+            updateLicenseStatusBanner()
+            checkPermissionAndScan()
+        }
+    }
+
+    private fun setupLicenseGate() {
+        val gateView = binding.viewLicenseGate.root
+        val tvHwid = gateView.findViewById<TextView>(R.id.tvDeviceHwid)
+        val btnCopy = gateView.findViewById<Button>(R.id.btnCopyHwid)
+        val etDiscord = gateView.findViewById<EditText>(R.id.etDiscordTag)
+        val btnDiscord = gateView.findViewById<Button>(R.id.btnRequestDiscord)
+        val etKey = gateView.findViewById<EditText>(R.id.etLicenseKey)
+        val btnActivate = gateView.findViewById<Button>(R.id.btnActivateKey)
+
+        val hwid = LicenseManager.getDeviceHwid(this)
+        tvHwid.text = hwid
+
+        btnCopy.setOnClickListener {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText("Device HWID", hwid))
+            Toast.makeText(this, "Device HWID copied! Send it to Princeyy.", Toast.LENGTH_SHORT).show()
+        }
+
+        btnDiscord.setOnClickListener {
+            val tag = etDiscord.text.toString().trim()
+            lifecycleScope.launch {
+                val sentWebhook = DiscordNotifier.sendDiscordWebhookRequest(hwid, tag, "Standard Access")
+                if (!sentWebhook) {
+                    // If no webhook configured, open Discord directly
+                    DiscordNotifier.openDiscord(this@MainActivity)
+                } else {
+                    Toast.makeText(this@MainActivity, "Access request dispatched to Princeyy on Discord!", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        btnActivate.setOnClickListener {
+            val key = etKey.text.toString().trim()
+            if (key.isEmpty()) {
+                Toast.makeText(this, "Please enter your license key.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            when (val result = LicenseManager.activateKey(this, key)) {
+                is LicenseManager.ActivationResult.Success -> {
+                    Toast.makeText(this, "🎉 Activated! Welcome to GhostTrack VIP.", Toast.LENGTH_LONG).show()
+                    hideLicenseLockScreen()
+                    updateLicenseStatusBanner()
+                    checkPermissionAndScan()
+                }
+                is LicenseManager.ActivationResult.Error -> {
+                    Toast.makeText(this, "❌ ${result.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun showLicenseLockScreen() {
+        binding.viewLicenseGate.root.isVisible = true
+        binding.layoutLicenseStatus.isVisible = false
+        binding.fabScan.isVisible = false
+    }
+
+    private fun hideLicenseLockScreen() {
+        binding.viewLicenseGate.root.isVisible = false
+        binding.layoutLicenseStatus.isVisible = true
+        binding.fabScan.isVisible = true
+    }
+
+    private fun updateLicenseStatusBanner() {
+        val remainingMs = LicenseManager.getRemainingTimeMs(this)
+        val remainingUses = LicenseManager.getRemainingUses(this)
+
+        val timeStr = when {
+            remainingMs == -1L -> "👑 VIP Lifetime"
+            remainingMs <= 0 -> "⚠️ Expired"
+            else -> {
+                val days = TimeUnit.MILLISECONDS.toDays(remainingMs)
+                val hours = TimeUnit.MILLISECONDS.toHours(remainingMs) % 24
+                if (days > 0) "⏳ ${days}d ${hours}h left" else "⏳ ${hours}h left"
+            }
+        }
+
+        val usesStr = when {
+            remainingUses == -1 -> "🔄 Unlimited Scans"
+            remainingUses <= 0 -> "⚠️ 0 Scans Left"
+            else -> "🔄 $remainingUses scans left"
+        }
+
+        binding.tvLicenseStatusText.text = timeStr
+        binding.tvLicenseUsesText.text = usesStr
     }
 
     private fun setupRecyclerView() {
@@ -132,7 +234,6 @@ class MainActivity : AppCompatActivity() {
             exportForensicReport()
         }
 
-        // Tap on "Made by Princeyy" badge shows developer info
         binding.layoutPrinceyyBadge.setOnClickListener {
             showAboutPrinceyyDialog()
         }
@@ -161,10 +262,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun performForensicScan() {
+        // Enforce license check before performing scan
+        if (!LicenseManager.isAccessAllowed(this)) {
+            showLicenseLockScreen()
+            Toast.makeText(this, "🔒 Your license time or scan limit has expired! Contact Princeyy.", Toast.LENGTH_LONG).show()
+            return
+        }
+
         if (!analyzer.hasUsagePermission()) {
             binding.cardPermissionWarning.isVisible = true
             return
         }
+
+        // Consume 1 use/scan from license quota
+        LicenseManager.recordUsage(this)
+        updateLicenseStatusBanner()
 
         binding.progressBar.isVisible = true
         val endTime = System.currentTimeMillis()
@@ -176,7 +288,6 @@ class MainActivity : AppCompatActivity() {
                 currentDataset = results
                 adapter.setData(results)
 
-                // Update summary dashboard counts
                 updateDashboard(results)
                 applyFilter()
             } catch (e: Exception) {
@@ -201,7 +312,6 @@ class MainActivity : AppCompatActivity() {
         binding.tvInstalledCount.text = active.size.toString()
         binding.tvActiveTime.text = "${FormatUtils.formatDuration(activeFgTotal)} screen time"
 
-        // Update tab titles with counts
         binding.tabLayoutFilter.getTabAt(0)?.text = "👻 Uninstalled (${ghosts.size})"
         binding.tabLayoutFilter.getTabAt(1)?.text = "📱 Installed (${active.size})"
         binding.tabLayoutFilter.getTabAt(2)?.text = "All (${results.size})"
@@ -327,7 +437,7 @@ class MainActivity : AppCompatActivity() {
     private fun showAboutPrinceyyDialog() {
         AlertDialog.Builder(this)
             .setTitle("👑 GhostTrack Forensics")
-            .setMessage("Developed and Designed by Princeyy.\n\nGhostTrack queries the Android system-level UsageStatsManager service to reveal apps that were used and uninstalled even before this app was installed on the phone.\n\nAll forensics are computed completely locally on-device without any internet or data leakage.")
+            .setMessage("Developed and Designed by Princeyy.\n\nProtected by Princeyy CryptoVault & HWID licensing.\nAll forensics are computed completely locally on-device without any internet or data leakage.")
             .setPositiveButton("Awesome", null)
             .show()
     }
