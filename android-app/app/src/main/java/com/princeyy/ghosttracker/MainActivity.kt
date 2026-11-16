@@ -237,6 +237,10 @@ class MainActivity : AppCompatActivity() {
         binding.layoutPrinceyyBadge.setOnClickListener {
             showAboutPrinceyyDialog()
         }
+
+        binding.btnOpenTamperDetection.setOnClickListener {
+            startActivity(Intent(this, TamperDetectionActivity::class.java))
+        }
     }
 
     private fun checkPermissionAndScan() {
