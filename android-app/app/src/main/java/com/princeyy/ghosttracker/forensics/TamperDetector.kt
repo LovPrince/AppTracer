@@ -211,7 +211,7 @@ object TamperDetector {
                 val maxTime = installTimes.maxOrNull() ?: 0L
                 val minTime = installTimes.minOrNull() ?: 0L
                 val maxDiff = maxTime - minTime
-                if (maxDiff in 1..TimeUnit.HOURS.toMillis(1)) {
+                if (maxDiff > 0 && maxDiff <= TimeUnit.HOURS.toMillis(1)) {
                     signals.add("📱 All system apps installed at exactly same time — strong factory reset signal")
                     confidence += 40
                 }

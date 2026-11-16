@@ -117,7 +117,7 @@ class UsageAnalyzer(private val context: Context) {
 
         // 2b. Also query aggregated stats across the whole window
         try {
-            val aggStats = usageStatsManager.queryAndAggregateUsageStats(startTime, endTime)
+            val aggStats = usageStatsManager.queryAndAggregateUsageStats(startTime, endTime) ?: emptyMap()
             for ((pkg, stat) in aggStats) {
                 val item = accumulators.getOrPut(pkg) { PackageAccumulator(pkg) }
                 if (stat.totalTimeInForeground > item.totalTimeMs) {
@@ -161,7 +161,7 @@ class UsageAnalyzer(private val context: Context) {
                         val start = resumeTimestamps.remove(pkg)
                         if (start != null && event.timeStamp > start) {
                             val duration = event.timeStamp - start
-                            if (duration in 1..TimeUnit.HOURS.toMillis(12)) {
+                            if (duration > 0 && duration <= TimeUnit.HOURS.toMillis(12)) {
                                 item.totalTimeMs += duration
                             }
                         }
