@@ -6,14 +6,13 @@ echo           DEPLOY GHOSTTRACK TO GITHUB - MADE BY PRINCEYY
 echo ======================================================================
 echo.
 
-set /p REPO_NAME="Enter your GitHub repository name (e.g., GhostTrack): "
+set /p REPO_NAME="Enter your GitHub repository name (press Enter for 'GhostTrack'): "
 if "%REPO_NAME%"=="" set REPO_NAME=GhostTrack
 
 echo.
-echo Initializing Git repository...
-git init
+echo Adding and committing latest fixes...
 git add .
-git commit -m "GhostTrack: Android Uninstalled App Forensics by Princeyy"
+git commit -m "Fix: Add Gradle wrapper generator, Android icons, and CI workflow" 2>nul
 git branch -M main
 
 echo.
@@ -27,7 +26,7 @@ git push -u origin main
 
 echo.
 echo ======================================================================
-echo  Done! Your repository is now deployed on GitHub:
+echo  Done! Your repository is now updated on GitHub:
 echo  https://github.com/LovPrince/%REPO_NAME%
 echo ======================================================================
 pause
