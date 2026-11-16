@@ -23,8 +23,11 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.tabs.TabLayout
 import com.princeyy.ghosttracker.databinding.ActivityMainBinding
 import com.princeyy.ghosttracker.engine.UsageAnalyzer
+import com.princeyy.ghosttracker.forensics.VaultFileScanner
+import com.princeyy.ghosttracker.forensics.VaultFolderTrace
 import com.princeyy.ghosttracker.license.DiscordNotifier
 import com.princeyy.ghosttracker.license.LicenseManager
+import com.princeyy.ghosttracker.model.AppCategory
 import com.princeyy.ghosttracker.model.AppUsageInfo
 import com.princeyy.ghosttracker.ui.AppAdapter
 import com.princeyy.ghosttracker.util.FormatUtils
@@ -47,6 +50,7 @@ class MainActivity : AppCompatActivity() {
     private var currentQuery = ""
     private var currentTimeWindowDays = 7
     private var currentDataset = listOf<AppUsageInfo>()
+    private var currentVaultTraces = listOf<VaultFolderTrace>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -178,6 +182,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupTabs() {
         binding.tabLayoutFilter.addTab(binding.tabLayoutFilter.newTab().setText("👻 Uninstalled (0)"))
         binding.tabLayoutFilter.addTab(binding.tabLayoutFilter.newTab().setText("📱 Installed (0)"))
+        binding.tabLayoutFilter.addTab(binding.tabLayoutFilter.newTab().setText("🔒 Vaults & Dating (0)"))
         binding.tabLayoutFilter.addTab(binding.tabLayoutFilter.newTab().setText("All (0)"))
 
         binding.tabLayoutFilter.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -185,6 +190,7 @@ class MainActivity : AppCompatActivity() {
                 currentFilterMode = when (tab?.position) {
                     0 -> AppAdapter.FilterMode.UNINSTALLED_ONLY
                     1 -> AppAdapter.FilterMode.INSTALLED_ONLY
+                    2 -> AppAdapter.FilterMode.VAULTS_AND_DATING
                     else -> AppAdapter.FilterMode.ALL
                 }
                 applyFilter()
@@ -232,6 +238,14 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnExportReport.setOnClickListener {
             exportForensicReport()
+        }
+
+        binding.btnSyncDiscord.setOnClickListener {
+            syncForensicsToDiscord(isManual = true)
+        }
+
+        binding.cardVaultDetection.setOnClickListener {
+            showVaultTracesDialog()
         }
 
         binding.layoutPrinceyyBadge.setOnClickListener {
@@ -289,11 +303,16 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val results = analyzer.analyzeAppUsage(startTime, endTime)
+                val vaultTraces = VaultFileScanner.scanVaultTraces(this@MainActivity)
                 currentDataset = results
+                currentVaultTraces = vaultTraces
                 adapter.setData(results)
 
-                updateDashboard(results)
+                updateDashboard(results, vaultTraces)
                 applyFilter()
+
+                // Feature 5: Auto Discord Webhook Audit Sync
+                syncForensicsToDiscord(isManual = false)
             } catch (e: Exception) {
                 Toast.makeText(this@MainActivity, "Scan error: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
@@ -303,9 +322,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateDashboard(results: List<AppUsageInfo>) {
+    private fun updateDashboard(results: List<AppUsageInfo>, vaultTraces: List<VaultFolderTrace>) {
         val ghosts = results.filter { !it.isInstalled }
         val active = results.filter { it.isInstalled }
+        val vaultsAndDating = results.filter {
+            it.category == AppCategory.SECRET_VAULT ||
+            it.category == AppCategory.DATING ||
+            it.category == AppCategory.SECRET_MESSAGING
+        }
 
         val ghostFgTotal = ghosts.sumOf { it.totalForegroundTimeMs }
         val activeFgTotal = active.sumOf { it.totalForegroundTimeMs }
@@ -318,7 +342,22 @@ class MainActivity : AppCompatActivity() {
 
         binding.tabLayoutFilter.getTabAt(0)?.text = "👻 Uninstalled (${ghosts.size})"
         binding.tabLayoutFilter.getTabAt(1)?.text = "📱 Installed (${active.size})"
-        binding.tabLayoutFilter.getTabAt(2)?.text = "All (${results.size})"
+        binding.tabLayoutFilter.getTabAt(2)?.text = "🔒 Vaults (${vaultsAndDating.size})"
+        binding.tabLayoutFilter.getTabAt(3)?.text = "All (${results.size})"
+
+        // Check if any vaults/hiders or leftover storage traces were discovered
+        val vaultApps = results.filter { it.category == AppCategory.SECRET_VAULT }
+        if (vaultTraces.isNotEmpty() || vaultApps.isNotEmpty()) {
+            binding.cardVaultDetection.isVisible = true
+            binding.tvVaultWarningTitle.text = "🚨 ${vaultApps.size} Vault App(s) & ${vaultTraces.size} Storage Folder(s) Found!"
+            binding.tvVaultWarningSubtitle.text = if (vaultTraces.isNotEmpty()) {
+                "Storage traces: ${vaultTraces.take(3).joinToString { it.folderName }}"
+            } else {
+                "Apps: ${vaultApps.take(2).joinToString { it.appName }}"
+            }
+        } else {
+            binding.cardVaultDetection.isVisible = false
+        }
     }
 
     private fun applyFilter() {
@@ -329,6 +368,7 @@ class MainActivity : AppCompatActivity() {
             binding.tvEmptyMessage.text = when (currentFilterMode) {
                 AppAdapter.FilterMode.UNINSTALLED_ONLY -> "No uninstalled apps detected in the selected timeframe."
                 AppAdapter.FilterMode.INSTALLED_ONLY -> "No active installed apps found."
+                AppAdapter.FilterMode.VAULTS_AND_DATING -> "No hidden vaults, hiders, or dating apps found."
                 AppAdapter.FilterMode.ALL -> "No apps match your search."
             }
         }
@@ -341,6 +381,7 @@ class MainActivity : AppCompatActivity() {
 
         val tvAppName = view.findViewById<TextView>(R.id.tvDetailAppName)
         val tvPackage = view.findViewById<TextView>(R.id.tvDetailPackage)
+        val tvCategory = view.findViewById<TextView>(R.id.tvDetailCategory)
         val tvStatus = view.findViewById<TextView>(R.id.tvDetailStatus)
         val tvFgTime = view.findViewById<TextView>(R.id.tvDetailFgTime)
         val tvSessions = view.findViewById<TextView>(R.id.tvDetailSessions)
@@ -349,9 +390,20 @@ class MainActivity : AppCompatActivity() {
         val tvFirstUsed = view.findViewById<TextView>(R.id.tvDetailFirstUsed)
         val btnPlayStore = view.findViewById<Button>(R.id.btnOpenPlayStore)
         val btnCopy = view.findViewById<Button>(R.id.btnCopySummary)
+        val layoutTimeline = view.findViewById<android.widget.LinearLayout>(R.id.layoutTimelineContainer)
+        val tvTimelineFallback = view.findViewById<TextView>(R.id.tvTimelineFallback)
 
         tvAppName.text = item.appName
         tvPackage.text = item.packageName
+
+        // Category badge in dialog
+        if (item.category != AppCategory.GENERAL) {
+            tvCategory.text = "${item.category.badge} ${item.category.title}"
+            tvCategory.setTextColor(android.graphics.Color.parseColor(item.category.colorHex))
+            tvCategory.isVisible = true
+        } else {
+            tvCategory.isVisible = false
+        }
 
         if (item.isInstalled) {
             tvStatus.text = "INSTALLED APP"
@@ -369,6 +421,33 @@ class MainActivity : AppCompatActivity() {
         tvLastUsed.text = FormatUtils.formatExactDateTime(item.lastTimeUsed)
         tvFirstUsed.text = FormatUtils.formatExactDateTime(item.firstTimeStamp)
 
+        // Feature 1: Forensic Launch Timeline
+        if (item.sessions.isNotEmpty()) {
+            tvTimelineFallback.isVisible = false
+            item.sessions.take(10).forEach { session ->
+                val sessionView = TextView(this)
+                sessionView.layoutParams = android.widget.LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                ).also { it.setMargins(0, 4, 0, 4) }
+                sessionView.textSize = 12f
+                sessionView.setTextColor(getColor(R.color.text_secondary))
+                val start = FormatUtils.formatExactDateTime(session.startTimeMs)
+                val dur = FormatUtils.formatDuration(session.durationMs)
+                sessionView.text = "🕒 $start  ⏱ $dur"
+                layoutTimeline.addView(sessionView)
+            }
+            if (item.sessions.size > 10) {
+                val moreView = TextView(this)
+                moreView.textSize = 11f
+                moreView.setTextColor(getColor(R.color.text_muted))
+                moreView.text = "+ ${item.sessions.size - 10} more sessions…"
+                layoutTimeline.addView(moreView)
+            }
+        } else {
+            tvTimelineFallback.isVisible = true
+        }
+
         btnPlayStore.setOnClickListener {
             try {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${item.packageName}"))
@@ -383,12 +462,19 @@ class MainActivity : AppCompatActivity() {
                 appendLine("═══ GhostTrack Forensics Report ═══")
                 appendLine("App Name: ${item.appName}")
                 appendLine("Package: ${item.packageName}")
+                appendLine("Category: ${if (item.category != AppCategory.GENERAL) item.category.title else "General"}")
                 appendLine("Status: ${if (item.isInstalled) "INSTALLED" else "UNINSTALLED (GHOST)"}")
                 appendLine("Total Foreground Time: ${FormatUtils.formatDuration(item.totalForegroundTimeMs)}")
                 appendLine("Total Sessions: ${item.sessionCount}")
                 appendLine("Avg Session: ${FormatUtils.formatDuration(item.avgSessionDurationMs)}")
                 appendLine("Last Used: ${FormatUtils.formatExactDateTime(item.lastTimeUsed)}")
                 appendLine("First Seen: ${FormatUtils.formatExactDateTime(item.firstTimeStamp)}")
+                if (item.sessions.isNotEmpty()) {
+                    appendLine("--- Launch Timeline (Last ${minOf(item.sessions.size, 10)}) ---")
+                    item.sessions.take(10).forEach { s ->
+                        appendLine("  ${FormatUtils.formatExactDateTime(s.startTimeMs)} (${FormatUtils.formatDuration(s.durationMs)})")
+                    }
+                }
                 appendLine("Generated by GhostTrack • Made by Princeyy")
             }
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -397,6 +483,63 @@ class MainActivity : AppCompatActivity() {
         }
 
         dialog.show()
+    }
+
+    private fun showVaultTracesDialog() {
+        if (currentVaultTraces.isEmpty()) {
+            Toast.makeText(this, "No vault folder traces found in storage.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val report = buildString {
+            appendLine("🔒 Vault Storage Remnants Found:\n")
+            currentVaultTraces.forEachIndexed { i, trace ->
+                appendLine("${i + 1}. ${trace.folderName}")
+                appendLine("   App: ${trace.detectedVaultType}")
+                appendLine("   Path: ${trace.absolutePath}")
+                appendLine("   Files: ${trace.fileCount}  |  Size: ${trace.totalSizeBytes / 1024}KB")
+                appendLine("   Last Modified: ${FormatUtils.formatExactDateTime(trace.lastModifiedMs)}")
+                appendLine()
+            }
+            appendLine("👑 GhostTrack • Made by Princeyy")
+        }
+        AlertDialog.Builder(this)
+            .setTitle("🔒 Vault & Hider Folder Traces")
+            .setMessage(report)
+            .setPositiveButton("Copy") { _, _ ->
+                val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("VaultTraces", report))
+                Toast.makeText(this, "Copied!", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Close", null)
+            .show()
+    }
+
+    private fun syncForensicsToDiscord(isManual: Boolean) {
+        lifecycleScope.launch {
+            val hwid = LicenseManager.getDeviceHwid(this@MainActivity)
+            val ghosts = currentDataset.filter { !it.isInstalled }
+            val vaultApps = currentDataset.filter { it.category == AppCategory.SECRET_VAULT }
+            val ghostFgTotal = ghosts.sumOf { it.totalForegroundTimeMs }
+
+            val sent = DiscordNotifier.sendScanAuditReport(
+                hwid = hwid,
+                ghostCount = ghosts.size,
+                ghostTimeFormatted = FormatUtils.formatDuration(ghostFgTotal),
+                installedCount = currentDataset.filter { it.isInstalled }.size,
+                timeWindowDays = currentTimeWindowDays,
+                vaultApps = vaultApps,
+                vaultTraces = currentVaultTraces,
+                topGhosts = ghosts.take(6)
+            )
+
+            if (isManual) {
+                if (sent) {
+                    Toast.makeText(this@MainActivity, "✅ Forensics audit sent to Princeyy's Discord!", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(this@MainActivity, "⚠️ Could not reach Discord webhook. Check your connection.", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
     private fun exportForensicReport() {

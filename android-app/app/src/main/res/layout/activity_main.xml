@@ -70,10 +70,20 @@
             </LinearLayout>
 
             <ImageButton
+                android:id="@+id/btnSyncDiscord"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_send"
+                app:tint="@color/princeyy_gold"
+                android:contentDescription="Sync Audit to Discord" />
+
+            <ImageButton
                 android:id="@+id/btnExportReport"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@android:drawable/ic_menu_share"
                 app:tint="@color/text_primary"
@@ -254,7 +264,7 @@
             android:layout_marginStart="12dp"
             android:layout_marginEnd="12dp"
             android:layout_marginTop="4dp"
-            android:layout_marginBottom="8dp"
+            android:layout_marginBottom="4dp"
             android:background="@drawable/bg_rounded_card"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -300,6 +310,65 @@
                 android:text="SCAN →"
                 android:textColor="@color/secondary"
                 android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Deep Vault, Hider & Storage Remnants Card -->
+        <LinearLayout
+            android:id="@+id/cardVaultDetection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/bg_badge_uninstalled"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="14dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="10dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔒"
+                android:textSize="20sp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvVaultWarningTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Secret Vaults / Remnants Detected!"
+                    android:textColor="#FCA5A5"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvVaultWarningSubtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="HideX / AmorK / Calculator vault remnants found in storage"
+                    android:textColor="#FECACA"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="VIEW"
+                android:textColor="#EF4444"
+                android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -358,7 +427,7 @@
             </com.google.android.material.chip.ChipGroup>
         </HorizontalScrollView>
 
-        <!-- Filter Tabs: [Uninstalled Only] [Installed] [All] -->
+        <!-- Filter Tabs: [Uninstalled Only] [Installed] [Vaults & Dating] [All] -->
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayoutFilter"
             android:layout_width="match_parent"
@@ -367,7 +436,7 @@
             app:tabIndicatorColor="@color/primary"
             app:tabSelectedTextColor="@color/white"
             app:tabTextColor="@color/text_secondary"
-            app:tabMode="fixed"
+            app:tabMode="auto"
             app:tabGravity="fill" />
 
         <!-- Search Bar -->

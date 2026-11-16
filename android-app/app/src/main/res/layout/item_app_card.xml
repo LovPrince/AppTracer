@@ -82,20 +82,45 @@
                     android:textSize="11sp" />
             </LinearLayout>
 
-            <!-- Status Badge: Uninstalled vs Installed -->
-            <TextView
-                android:id="@+id/tvStatusBadge"
+            <!-- Badges Container -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_badge_uninstalled"
-                android:paddingStart="8dp"
-                android:paddingTop="3dp"
-                android:paddingEnd="8dp"
-                android:paddingBottom="3dp"
-                android:text="👻 UNINSTALLED"
-                android:textColor="@color/ghost_red_light"
-                android:textSize="10sp"
-                android:textStyle="bold" />
+                android:orientation="vertical"
+                android:gravity="end">
+
+                <!-- Category Badge (Vault, Dating, Secret Chat) -->
+                <TextView
+                    android:id="@+id/tvCategoryBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="4dp"
+                    android:background="@drawable/bg_badge_uninstalled"
+                    android:paddingStart="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingEnd="6dp"
+                    android:paddingBottom="2dp"
+                    android:text="🔒 VAULT"
+                    android:textColor="#EF4444"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <!-- Status Badge: Uninstalled vs Installed -->
+                <TextView
+                    android:id="@+id/tvStatusBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_badge_uninstalled"
+                    android:paddingStart="8dp"
+                    android:paddingTop="3dp"
+                    android:paddingEnd="8dp"
+                    android:paddingBottom="3dp"
+                    android:text="👻 UNINSTALLED"
+                    android:textColor="@color/ghost_red_light"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- Divider line -->

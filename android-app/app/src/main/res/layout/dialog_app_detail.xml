@@ -1,236 +1,284 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/bg_card"
-    android:orientation="vertical"
-    android:padding="20dp">
-
-    <!-- Handle drag indicator -->
-    <View
-        android:layout_width="40dp"
-        android:layout_height="4dp"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp"
-        android:background="@drawable/bg_search_field" />
+    android:background="@color/bg_card">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Handle drag indicator -->
+        <View
+            android:layout_width="40dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_search_field" />
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvDetailAppName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/white"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:text="App Name" />
+
+                <TextView
+                    android:id="@+id/tvDetailPackage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:text="com.example.package" />
+
+                <TextView
+                    android:id="@+id/tvDetailCategory"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:textColor="#EF4444"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </LinearLayout>
 
             <TextView
-                android:id="@+id/tvDetailAppName"
+                android:id="@+id/tvDetailStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_badge_uninstalled"
+                android:paddingStart="10dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="4dp"
+                android:text="GHOST APP"
+                android:textColor="@color/ghost_red_light"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="@color/bg_card_stroke" />
+
+        <!-- Detailed Stats Rows -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="USAGE FORENSICS BREAKDOWN"
+            android:textColor="@color/primary"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <!-- Total Foreground Running Time -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="⏱️ Total Foreground Screen Time"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+            <TextView
+                android:id="@+id/tvDetailFgTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#38BDF8"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:text="1h 23m 45s" />
+        </LinearLayout>
+
+        <!-- Sessions Count -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="🔄 Total App Launches / Sessions"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+            <TextView
+                android:id="@+id/tvDetailSessions"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/white"
-                android:textSize="18sp"
+                android:textSize="13sp"
                 android:textStyle="bold"
-                android:text="App Name" />
-
-            <TextView
-                android:id="@+id/tvDetailPackage"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                android:text="com.example.package" />
+                android:text="14 sessions" />
         </LinearLayout>
 
+        <!-- Average Session Duration -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="⏳ Average Session Duration"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+            <TextView
+                android:id="@+id/tvDetailAvgSession"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:text="5m 58s" />
+        </LinearLayout>
+
+        <!-- Last Used Exact Timestamp -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="📅 Last Used (Before Uninstall)"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+            <TextView
+                android:id="@+id/tvDetailLastUsed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp"
+                android:text="2026-11-14 20:15:22" />
+        </LinearLayout>
+
+        <!-- First Recorded Exact Timestamp -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="🚀 First Recorded Activity"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+            <TextView
+                android:id="@+id/tvDetailFirstUsed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp"
+                android:text="2026-10-10 11:20:00" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="@color/bg_card_stroke" />
+
+        <!-- Feature 1: Forensic Launch Timeline Breakdown -->
         <TextView
-            android:id="@+id/tvDetailStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_badge_uninstalled"
-            android:paddingStart="10dp"
-            android:paddingTop="4dp"
-            android:paddingEnd="10dp"
-            android:paddingBottom="4dp"
-            android:text="GHOST APP"
-            android:textColor="@color/ghost_red_light"
+            android:text="🕒 FORENSIC LAUNCH TIMELINE"
+            android:textColor="@color/primary"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <LinearLayout
+            android:id="@+id/layoutTimelineContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvTimelineFallback"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No recent individual session events recorded."
+                android:textColor="@color/text_muted"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Actions Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpenPlayStore"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:backgroundTint="@color/bg_chip"
+                android:text="Google Play"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                app:cornerRadius="10dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCopySummary"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:backgroundTint="@color/primary"
+                android:text="Copy Report"
+                android:textAllCaps="false"
+                android:textColor="@color/white"
+                app:cornerRadius="10dp" />
+        </LinearLayout>
+
+        <!-- Made by Princeyy Footer in Dialog -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp"
+            android:text="👑 GhostTrack Forensics • Made by Princeyy"
+            android:textColor="@color/princeyy_purple"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp"
-        android:background="@color/bg_card_stroke" />
-
-    <!-- Detailed Stats Rows -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="USAGE FORENSICS BREAKDOWN"
-        android:textColor="@color/primary"
-        android:textSize="11sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.08" />
-
-    <!-- Total Foreground Running Time -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:orientation="horizontal">
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="⏱️ Total Foreground Screen Time"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
-        <TextView
-            android:id="@+id/tvDetailFgTime"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="#38BDF8"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:text="1h 23m 45s" />
-    </LinearLayout>
-
-    <!-- Sessions Count -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🔄 Total App Launches / Sessions"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
-        <TextView
-            android:id="@+id/tvDetailSessions"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/white"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:text="14 sessions" />
-    </LinearLayout>
-
-    <!-- Average Session Duration -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="⏳ Average Session Duration"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
-        <TextView
-            android:id="@+id/tvDetailAvgSession"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/white"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:text="5m 58s" />
-    </LinearLayout>
-
-    <!-- Last Used Exact Timestamp -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="📅 Last Used (Before Uninstall)"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
-        <TextView
-            android:id="@+id/tvDetailLastUsed"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/text_primary"
-            android:textSize="13sp"
-            android:text="2026-11-14 20:15:22" />
-    </LinearLayout>
-
-    <!-- First Recorded Exact Timestamp -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🚀 First Recorded Activity"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
-        <TextView
-            android:id="@+id/tvDetailFirstUsed"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/text_primary"
-            android:textSize="13sp"
-            android:text="2026-10-10 11:20:00" />
-    </LinearLayout>
-
-    <!-- Actions Buttons -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:orientation="horizontal">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnOpenPlayStore"
-            android:layout_width="0dp"
-            android:layout_height="44dp"
-            android:layout_weight="1"
-            android:layout_marginEnd="6dp"
-            android:backgroundTint="@color/bg_chip"
-            android:text="Google Play"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            app:cornerRadius="10dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnCopySummary"
-            android:layout_width="0dp"
-            android:layout_height="44dp"
-            android:layout_weight="1"
-            android:layout_marginStart="6dp"
-            android:backgroundTint="@color/primary"
-            android:text="Copy Report"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            app:cornerRadius="10dp" />
-    </LinearLayout>
-
-    <!-- Made by Princeyy Footer in Dialog -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="16dp"
-        android:text="👑 GhostTrack Forensics • Made by Princeyy"
-        android:textColor="@color/princeyy_purple"
-        android:textSize="11sp"
-        android:textStyle="bold" />
-</LinearLayout>
+</androidx.core.widget.NestedScrollView>

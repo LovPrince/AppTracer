@@ -9,9 +9,11 @@ import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Process
 import com.princeyy.ghosttracker.model.AppUsageInfo
+import com.princeyy.ghosttracker.model.UsageSession
 import com.princeyy.ghosttracker.util.KnownAppsCatalog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 
 /**
  * Core Forensic Engine for detecting Uninstalled (Ghost) and Installed apps
@@ -89,7 +91,8 @@ class UsageAnalyzer(private val context: Context) {
             var totalTimeMs: Long = 0L,
             var firstTimeStamp: Long = Long.MAX_VALUE,
             var lastTimeUsed: Long = 0L,
-            var sessionCount: Int = 0
+            var sessionCount: Int = 0,
+            val sessions: MutableList<UsageSession> = mutableListOf()
         )
 
         val accumulators = mutableMapOf<String, PackageAccumulator>()
@@ -163,6 +166,7 @@ class UsageAnalyzer(private val context: Context) {
                             val duration = event.timeStamp - start
                             if (duration > 0 && duration <= TimeUnit.HOURS.toMillis(12)) {
                                 item.totalTimeMs += duration
+                                item.sessions.add(UsageSession(start, event.timeStamp, duration))
                             }
                         }
                     }
@@ -236,6 +240,8 @@ class UsageAnalyzer(private val context: Context) {
             }
 
             val cleanFirstTime = if (acc.firstTimeStamp == Long.MAX_VALUE) acc.lastTimeUsed else acc.firstTimeStamp
+            val category = KnownAppsCatalog.resolveCategory(packageName)
+            val sortedSessions = acc.sessions.sortedByDescending { it.startTimeMs }
 
             result.add(
                 AppUsageInfo(
@@ -246,7 +252,9 @@ class UsageAnalyzer(private val context: Context) {
                     firstTimeStamp = cleanFirstTime,
                     lastTimeUsed = acc.lastTimeUsed,
                     sessionCount = maxOf(acc.sessionCount, if (acc.totalTimeMs > 0) 1 else 0),
-                    icon = icon
+                    icon = icon,
+                    category = category,
+                    sessions = sortedSessions
                 )
             )
         }

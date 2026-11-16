@@ -11,6 +11,7 @@ import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.princeyy.ghosttracker.R
+import com.princeyy.ghosttracker.model.AppCategory
 import com.princeyy.ghosttracker.model.AppUsageInfo
 import com.princeyy.ghosttracker.util.FormatUtils
 
@@ -50,6 +51,7 @@ class AppAdapter(
             val matchesFilter = when (filterMode) {
                 FilterMode.UNINSTALLED_ONLY -> !item.isInstalled
                 FilterMode.INSTALLED_ONLY -> item.isInstalled
+                FilterMode.VAULTS_AND_DATING -> item.category == AppCategory.SECRET_VAULT || item.category == AppCategory.DATING || item.category == AppCategory.SECRET_MESSAGING
                 FilterMode.ALL -> true
             }
 
@@ -78,6 +80,7 @@ class AppAdapter(
         private val tvAppName: TextView = itemView.findViewById(R.id.tvAppName)
         private val tvPackageName: TextView = itemView.findViewById(R.id.tvPackageName)
         private val tvStatusBadge: TextView = itemView.findViewById(R.id.tvStatusBadge)
+        private val tvCategoryBadge: TextView = itemView.findViewById(R.id.tvCategoryBadge)
         private val tvFgTime: TextView = itemView.findViewById(R.id.tvFgTime)
         private val tvSessions: TextView = itemView.findViewById(R.id.tvSessions)
         private val tvLastUsed: TextView = itemView.findViewById(R.id.tvLastUsed)
@@ -90,6 +93,15 @@ class AppAdapter(
             tvSessions.text = "${item.sessionCount} launches"
             tvLastUsed.text = FormatUtils.formatRelativeTime(item.lastTimeUsed)
             tvFirstUsed.text = FormatUtils.formatExactDateTime(item.firstTimeStamp)
+
+            // Category badge (HideX, AmorK, Dating, Chat)
+            if (item.category != AppCategory.GENERAL) {
+                tvCategoryBadge.text = item.category.badge
+                tvCategoryBadge.setTextColor(Color.parseColor(item.category.colorHex))
+                tvCategoryBadge.visibility = View.VISIBLE
+            } else {
+                tvCategoryBadge.visibility = View.GONE
+            }
 
             if (item.isInstalled) {
                 // Currently Installed App
@@ -136,6 +148,7 @@ class AppAdapter(
     enum class FilterMode {
         UNINSTALLED_ONLY,
         INSTALLED_ONLY,
+        VAULTS_AND_DATING,
         ALL
     }
 }
