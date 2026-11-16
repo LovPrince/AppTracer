@@ -83,14 +83,7 @@ class UsageAnalyzer(private val context: Context) {
             // Fallback
         }
 
-        // 2. Query aggregated UsageStats
-        val statsList = usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_BEST,
-            startTime,
-            endTime
-        ) ?: emptyList()
-
-        // Helper tracker per package
+        // 2. Query both INTERVAL_DAILY and aggregated UsageStats to guarantee freshly used apps are captured
         class PackageAccumulator(
             val packageName: String,
             var totalTimeMs: Long = 0L,
@@ -101,21 +94,48 @@ class UsageAnalyzer(private val context: Context) {
 
         val accumulators = mutableMapOf<String, PackageAccumulator>()
 
-        for (stat in statsList) {
-            val pkg = stat.packageName ?: continue
-            val item = accumulators.getOrPut(pkg) { PackageAccumulator(pkg) }
-            item.totalTimeMs += stat.totalTimeInForeground
-            if (stat.firstTimeStamp > 0 && stat.firstTimeStamp < item.firstTimeStamp) {
-                item.firstTimeStamp = stat.firstTimeStamp
-            }
-            if (stat.lastTimeUsed > item.lastTimeUsed) {
-                item.lastTimeUsed = stat.lastTimeUsed
-            }
-        }
-
-        // 3. Query fine-grained UsageEvents to compute exact sessions & recent uninstalled app activity
+        // 2a. Query INTERVAL_DAILY (ensures today's fresh usage is included)
         try {
-            val usageEvents = usageStatsManager.queryEvents(startTime, endTime)
+            val dailyStats = usageStatsManager.queryUsageStats(
+                UsageStatsManager.INTERVAL_DAILY,
+                startTime,
+                endTime
+            ) ?: emptyList()
+
+            for (stat in dailyStats) {
+                val pkg = stat.packageName ?: continue
+                val item = accumulators.getOrPut(pkg) { PackageAccumulator(pkg) }
+                item.totalTimeMs += stat.totalTimeInForeground
+                if (stat.firstTimeStamp > 0 && stat.firstTimeStamp < item.firstTimeStamp) {
+                    item.firstTimeStamp = stat.firstTimeStamp
+                }
+                if (stat.lastTimeUsed > item.lastTimeUsed) {
+                    item.lastTimeUsed = stat.lastTimeUsed
+                }
+            }
+        } catch (e: Throwable) { }
+
+        // 2b. Also query aggregated stats across the whole window
+        try {
+            val aggStats = usageStatsManager.queryAndAggregateUsageStats(startTime, endTime)
+            for ((pkg, stat) in aggStats) {
+                val item = accumulators.getOrPut(pkg) { PackageAccumulator(pkg) }
+                if (stat.totalTimeInForeground > item.totalTimeMs) {
+                    item.totalTimeMs = stat.totalTimeInForeground
+                }
+                if (stat.firstTimeStamp > 0 && stat.firstTimeStamp < item.firstTimeStamp) {
+                    item.firstTimeStamp = stat.firstTimeStamp
+                }
+                if (stat.lastTimeUsed > item.lastTimeUsed) {
+                    item.lastTimeUsed = stat.lastTimeUsed
+                }
+            }
+        } catch (e: Throwable) { }
+
+        // 3. Query fine-grained UsageEvents (bounded to last 48H to prevent Android 1MB Binder overflow)
+        try {
+            val eventStartTime = maxOf(startTime, endTime - TimeUnit.HOURS.toMillis(48))
+            val usageEvents = usageStatsManager.queryEvents(eventStartTime, endTime)
             val event = UsageEvents.Event()
             val resumeTimestamps = mutableMapOf<String, Long>()
 
@@ -141,19 +161,52 @@ class UsageAnalyzer(private val context: Context) {
                         val start = resumeTimestamps.remove(pkg)
                         if (start != null && event.timeStamp > start) {
                             val duration = event.timeStamp - start
-                            // If statsList didn't capture foreground time, use event duration
-                            if (item.totalTimeMs == 0L) {
+                            if (duration in 1..TimeUnit.HOURS.toMillis(12)) {
                                 item.totalTimeMs += duration
                             }
                         }
                     }
                 }
             }
-        } catch (e: Exception) {
-            // Some devices might throw SecurityException if events are restricted
+        } catch (e: Throwable) { }
+
+        // 4. Local Snapshot Tracker: Detect apps that were installed recently but are now gone!
+        val snapshotPrefs = context.getSharedPreferences("princeyy_installed_cache", Context.MODE_PRIVATE)
+        val cachedInstalledPackages = snapshotPrefs.getStringSet("seen_packages", emptySet()) ?: emptySet()
+        val cachedAppNames = mutableMapOf<String, String>()
+        val now = System.currentTimeMillis()
+
+        // Check for packages that were seen installed before, but are NOT installed now!
+        for (cachedEntry in cachedInstalledPackages) {
+            // Format: packageName|appName|lastSeenMs
+            val parts = cachedEntry.split("|")
+            if (parts.isNotEmpty()) {
+                val pkg = parts[0]
+                val appLabel = parts.getOrNull(1)
+                if (!appLabel.isNullOrBlank()) {
+                    cachedAppNames[pkg] = appLabel
+                }
+                if (!installedPackageMap.containsKey(pkg)) {
+                    // App was uninstalled! Ensure it exists in accumulators so it is flagged!
+                    val item = accumulators.getOrPut(pkg) { PackageAccumulator(pkg) }
+                    val cachedLastSeen = parts.getOrNull(2)?.toLongOrNull() ?: now
+                    if (item.lastTimeUsed == 0L) {
+                        item.lastTimeUsed = cachedLastSeen
+                    }
+                    if (item.sessionCount == 0) {
+                        item.sessionCount = 1
+                    }
+                }
+            }
         }
 
-        // 4. Construct final list: cross-reference with installed apps
+        // Update the snapshot cache with currently installed apps
+        val newCacheSet = installedPackageMap.map { (pkg, pair) ->
+            "$pkg|${pair.first}|$now"
+        }.toSet()
+        snapshotPrefs.edit().putStringSet("seen_packages", newCacheSet).apply()
+
+        // 5. Construct final list: cross-reference with installed apps
         val result = mutableListOf<AppUsageInfo>()
 
         for ((packageName, acc) in accumulators) {
@@ -177,8 +230,8 @@ class UsageAnalyzer(private val context: Context) {
                 appName = installedInfo!!.first
                 icon = installedInfo.second
             } else {
-                // UNINSTALLED APP: Package metadata is gone from OS, resolve via KnownAppsCatalog
-                appName = KnownAppsCatalog.resolveAppName(packageName)
+                // UNINSTALLED APP: Use cached name from when it was installed, or fallback to catalog
+                appName = cachedAppNames[packageName] ?: KnownAppsCatalog.resolveAppName(packageName)
                 icon = null
             }
 
