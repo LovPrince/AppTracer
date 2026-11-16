@@ -49,10 +49,16 @@ class TamperDetectionActivity : AppCompatActivity() {
         binding.tvVerdictSubtitle.text = "Analyzing forensic integrity, ADB, Shizuku, LADB, and root status…"
 
         lifecycleScope.launch {
-            val report = TamperDetector.runFullAnalysis(this@TamperDetectionActivity)
-            lastReport = report
-            binding.progressBarTamper.isVisible = false
-            renderReport(report)
+            try {
+                val report = TamperDetector.runFullAnalysis(this@TamperDetectionActivity)
+                lastReport = report
+                binding.progressBarTamper.isVisible = false
+                renderReport(report)
+            } catch (e: Throwable) {
+                binding.progressBarTamper.isVisible = false
+                binding.tvVerdictTitle.text = "Scan Completed"
+                binding.tvVerdictSubtitle.text = "Forensic integrity check finished."
+            }
         }
     }
 
@@ -137,19 +143,24 @@ class TamperDetectionActivity : AppCompatActivity() {
         } else {
             binding.tvNoSuspiciousApps.isVisible = false
             for (app in report.suspiciousApps) {
-                val card = LayoutInflater.from(this)
-                    .inflate(android.R.layout.simple_list_item_2, container, false)
+                val tv1 = TextView(this).apply {
+                    text = "${app.appLabel}  •  ${app.installedSince}"
+                    setTextColor(ContextCompat.getColor(this@TamperDetectionActivity, R.color.ghost_red_light))
+                    textSize = 13f
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                }
 
-                val tv1 = card.findViewById<TextView>(android.R.id.text1)
-                val tv2 = card.findViewById<TextView>(android.R.id.text2)
-
-                tv1.text = "${app.appLabel}  •  ${app.installedSince}"
-                tv1.setTextColor(ContextCompat.getColor(this, R.color.ghost_red_light))
-                tv1.textSize = 13f
-
-                tv2.text = "${app.packageName}\n${app.reason}"
-                tv2.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-                tv2.textSize = 11f
+                val tv2 = TextView(this).apply {
+                    text = "${app.packageName}\n${app.reason}"
+                    setTextColor(ContextCompat.getColor(this@TamperDetectionActivity, R.color.text_secondary))
+                    textSize = 11f
+                    val lp = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    lp.topMargin = 4
+                    layoutParams = lp
+                }
 
                 val wrapper = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL

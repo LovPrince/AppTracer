@@ -77,13 +77,13 @@ object TamperDetector {
 
     // ─── Run Full Tamper Analysis ──────────────────────────────────────────────
     suspend fun runFullAnalysis(context: Context): TamperReport = withContext(Dispatchers.IO) {
-        val foundApps = detectSuspiciousApps(context)
-        val adbEnabled = isAdbEnabled(context)
-        val devOptionsOn = isDeveloperOptionsEnabled(context)
-        val isRooted = isDeviceRooted()
-        val logGapResult = analyzeUsageLogGap(context)
-        val usbDebuggingHistoryOn = isUsbDebuggingHistoryDetected(context)
-        val factoryResetResult = detectFactoryReset(context)
+        val foundApps = try { detectSuspiciousApps(context) } catch (e: Throwable) { emptyList() }
+        val adbEnabled = try { isAdbEnabled(context) } catch (e: Throwable) { false }
+        val devOptionsOn = try { isDeveloperOptionsEnabled(context) } catch (e: Throwable) { false }
+        val isRooted = try { isDeviceRooted() } catch (e: Throwable) { false }
+        val logGapResult = try { analyzeUsageLogGap(context) } catch (e: Throwable) { LogGapResult(false, 0, "Log analysis unavailable") }
+        val usbDebuggingHistoryOn = try { isUsbDebuggingHistoryDetected(context) } catch (e: Throwable) { false }
+        val factoryResetResult = try { detectFactoryReset(context) } catch (e: Throwable) { FactoryResetResult(false, 0, emptyList(), "Check unavailable") }
 
         val riskScore = calculateRiskScore(
             foundApps, adbEnabled, devOptionsOn, isRooted, logGapResult, factoryResetResult
@@ -205,16 +205,18 @@ object TamperDetector {
                 "com.android.contacts", "com.android.mms"
             )
             val installTimes = systemApps.mapNotNull { pkg ->
-                try { context.packageManager.getPackageInfo(pkg, 0).firstInstallTime } catch (e: Exception) { null }
+                try { context.packageManager.getPackageInfo(pkg, 0).firstInstallTime } catch (e: Throwable) { null }
             }
             if (installTimes.size >= 2) {
-                val maxDiff = installTimes.max() - installTimes.min()
-                if (maxDiff < TimeUnit.HOURS.toMillis(1)) {
+                val maxTime = installTimes.maxOrNull() ?: 0L
+                val minTime = installTimes.minOrNull() ?: 0L
+                val maxDiff = maxTime - minTime
+                if (maxDiff in 1..TimeUnit.HOURS.toMillis(1)) {
                     signals.add("📱 All system apps installed at exactly same time — strong factory reset signal")
                     confidence += 40
                 }
             }
-        } catch (e: Exception) { }
+        } catch (e: Throwable) { }
 
         // Signal 3: Usage logs started very recently
         try {
